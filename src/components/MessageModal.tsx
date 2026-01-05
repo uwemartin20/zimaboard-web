@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { FaTimes, FaUser, FaTrash, FaCommentDots, FaHistory, FaEdit } from "react-icons/fa";
+import { FaTimes, FaTrash, FaCommentDots, FaHistory, FaEdit, FaArrowRight } from "react-icons/fa";
 import { timeAgo } from "../utils/timeAgo";
 import NewMessage from "./NewMessage";
+import UserCircle from "./UserCircle";
+import { getUser } from "../api/auth";
+import api from "../api/client";
 
 interface Comment {
   id: number;
@@ -31,6 +34,7 @@ interface MessageModalProps {
   message: {
     creator: any;
     assignees: Array<any>;
+    assignee: { id: number; name: string; };
     status: any;
     id: number;
     title: string;
@@ -59,6 +63,9 @@ export default function MessageModal({
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [messageModal, setMessageModal] = useState(false);
+  const [assignee, setAssignee] = useState<number | null>(
+    message?.assignee?.id ?? null
+  );
 
   useEffect(() => {
     if (containerRef.current) {
@@ -85,6 +92,34 @@ export default function MessageModal({
         }
         setLoading(false);
     };
+
+    const user = getUser();
+
+    const [assignedToMe, setAssignedToMe] = useState<boolean>(() => {
+      return message?.assignee?.id === user.id;
+    });
+
+    const onAssignToMeToggle = async (checked: boolean) => {
+      setAssignedToMe(checked);
+
+      try {
+        await api.put(`/messages/${message.id}/assign-to-me`, {
+          assigned_to: user.id,
+        });
+      } catch (error) {
+        console.error("Assign failed:", error);
+      }
+    
+      if (checked) {
+        // assign message to current user
+        setAssignee(user.id);
+        console.log(assignee);
+      } else {
+        // unassign (set to null)
+        setAssignee(null);
+      }
+    };
+    
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
@@ -178,23 +213,63 @@ export default function MessageModal({
                 </button>
               </div>
             </div>
+
+            {/* Assign to me */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700 leading-none">Mir Zuweisen</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={assignedToMe}
+                    onChange={e => onAssignToMeToggle(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer 
+                    peer-checked:bg-blue-600 
+                    after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                    after:bg-white after:rounded-full after:h-5 after:w-5
+                    after:transition-all peer-checked:after:translate-x-full">
+                  </div>
+                </label>
+            </div>
           </div>
 
           {/* Right column: activities & archive */}
           <div className="col-span-1 space-y-4">
-            {/* Creator & Assignees */}
-            <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                    <FaUser className="text-blue-600" />
-                    <span className="font-medium">{message.creator?.name || "Unbekannt"}</span>
-                </div>
-                {message.assignees.length > 0 && message.assignees.map(a => (
-                <div key={a.id} className="flex items-center gap-2">
-                    <FaUser className="text-red-600" />
-                    <span>{a.name}</span>
-                </div>
-                ))}
+            {/* Creator, Receiver & Subscribers */}
+            <div className="flex flex-col gap-3">
+
+              <h3 className="font-semibold mb-2">Verantwortlicher</h3>
+              {/* Creator → Receiver */}
+              <div className="flex items-center gap-3">
+
+                {/* Creator */}
+                <UserCircle user={message.creator} color="bg-blue-600" />
+
+                {/* Arrow / Sent To */}
+                <FaArrowRight className="text-gray-400" />
+
+                {/* Receiver (Assignee) */}
+                {message.assignee ? (
+                  <UserCircle user={message.assignee} color="bg-red-600" />
+                ) : (
+                  <span className="text-xs text-gray-400 italic">NA</span>
+                )}
+              </div>
+
+              {/* Subscribers */}
+              {message.assignees?.length > 0 && (
+                <>
+                  <h3 className="font-semibold mb-2">Abonnenten</h3>
+                  <div className="flex items-center gap-2">
+                    {message.assignees.map(u => (
+                      <UserCircle key={u.id} user={u} color="bg-gray-600" size="sm" />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
+            
             {/* Activities */}
             <div>
               <h3 className="font-semibold mb-2">Aktivitäten</h3>

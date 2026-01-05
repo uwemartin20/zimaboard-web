@@ -43,21 +43,21 @@ export default function Dashboard() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <SummaryCard
-        title="Zugewiesen"
+        title="Meine Nachrichten"
         messages={assigned}
         count={assignedCount}
         onClick={() => navigate("/assigned")}
         />
 
         <SummaryCard
-        title="Erstellt"
+        title="Zugewiesene Nachrichten"
         messages={created}
         count={createdCount}
         onClick={() => navigate("/created")}
         />
 
         <SummaryCard
-        title="Ankündigungen"
+        title="Pin Wand"
         messages={announcements}
         count={announcementsCount}
         onClick={() => navigate("/announcement")}

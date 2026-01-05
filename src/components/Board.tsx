@@ -16,6 +16,7 @@ interface Message {
     status: { name: string; color: string };
     status_id: number;
     assignees: Array<{ id: number; name: string; department: { id: number; name: string; color: string } }>;
+    assignee: { id: number; name: string; };
     is_archived: boolean;
     is_announcement: boolean;
 }

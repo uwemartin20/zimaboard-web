@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { FaTimes, FaUserPlus } from "react-icons/fa";
 import api from "../api/client";
+import { getUser } from "../api/auth";
 
 interface User {
   id: number;
@@ -16,7 +17,7 @@ interface Message {
     attachments: { id: number; path: string; original_name: string; mime_type: string; size: number }[];
     chat_messages: { id: number; user: { id: number; name: string }; content: string; created_at: string }[];
     activities: { id: number; user: { id: number; name: string }; assignee: { id: number; name: string }; action: string; created_at: string }[];
-    creator: { name: string; department: { name: string } | null };
+    creator: { id: number; name: string; department: { name: string } | null };
     status: { name: string; color: string };
     assignees: Array<{ id: number; name: string; department: { id: number; name: string; color: string } }>;
     is_archived: boolean;
@@ -30,11 +31,13 @@ interface ShareModalProps {
   onShareSuccess: () => void; // Callback after sharing
 }
 
+const user = getUser();
+
 export default function ShareModal({ message, isOpen, onClose, onShareSuccess }: ShareModalProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  // const [confirmOpen, setConfirmOpen] = useState(false);
 
 
   useEffect(() => {
@@ -44,8 +47,8 @@ export default function ShareModal({ message, isOpen, onClose, onShareSuccess }:
         setSelectedUsers(message.assignees.map(a => a.id));
     }
     // Fetch all users when modal opens
-    api.get("/settings/users")
-      .then(res => setUsers(res.data))
+    api.get("/users")
+      .then(res => setUsers(res.data.users))
       .catch(err => console.error(err));
   }, [isOpen, message]);
 
@@ -66,6 +69,11 @@ export default function ShareModal({ message, isOpen, onClose, onShareSuccess }:
 
   if (!isOpen) return null;
 
+  const excludeUserIds = [
+    message?.creator?.id, 
+    user.id
+  ].filter(Boolean);
+
   return (
     <>
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -83,7 +91,9 @@ export default function ShareModal({ message, isOpen, onClose, onShareSuccess }:
         </h2>
 
         <div className="max-h-64 overflow-y-auto mb-4">
-          {users.map(u => (
+          {users
+            .filter(u => !excludeUserIds.includes(u.id))
+            .map(u => (
             <label key={u.id} className="flex items-center gap-2 mb-2 cursor-pointer hover:bg-gray-100 p-1 rounded">
               <input
                 type="checkbox"
@@ -110,7 +120,10 @@ export default function ShareModal({ message, isOpen, onClose, onShareSuccess }:
             Stornieren
           </button>
           <button
-            onClick={() => setConfirmOpen(true)}
+            // onClick={() => setConfirmOpen(true)}
+            onClick={async () => {
+              await handleShare();
+            }}
             disabled={loading}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
           >
@@ -120,7 +133,7 @@ export default function ShareModal({ message, isOpen, onClose, onShareSuccess }:
       </div>
     </div>
 
-    {confirmOpen && (
+    {/* {confirmOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg shadow-lg w-96 max-w-full p-6">
             <h3 className="text-lg font-semibold mb-2">
@@ -128,7 +141,7 @@ export default function ShareModal({ message, isOpen, onClose, onShareSuccess }:
             </h3>
     
             <p className="text-sm text-gray-600 mb-4">
-            Diese Aktion entfernt die Nachricht aus den Ankündigungen.
+            Diese Aktion entfernt die Nachricht aus den Pin Wand.
             Möchten Sie fortfahren?
             </p>
     
@@ -152,7 +165,7 @@ export default function ShareModal({ message, isOpen, onClose, onShareSuccess }:
             </div>
         </div>
         </div>
-    )}  
+    )}   */}
   </>
   );
 }

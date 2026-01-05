@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/client";
 import { useNavigate } from "react-router-dom";
+import { getUser } from "../api/auth";
 
 interface MessageStatus {
   id: number;
@@ -22,7 +23,8 @@ export default function NewMessage() {
   const [statusId, setStatusId] = useState<number | "">("");
   const [users, setUsers] = useState<User[]>([]);
   const [assignees, setAssignees] = useState<number[]>([]);
-  const [isAnnouncement, setIsAnnouncement] = useState(false);
+  const [assignee, setAssignee] = useState<number | null>(null);
+  // const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [statuses, setStatuses] = useState<MessageStatus[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,8 +45,10 @@ export default function NewMessage() {
         description,
         priority,
         status_id: statusId,
-        is_announcement: isAnnouncement,
+        // is_announcement: isAnnouncement,
+        is_announcement: false,
         assignees,
+        assignee,
       });
 
     //   console.log("Created message:", messageRes.data.data);
@@ -91,6 +95,10 @@ export default function NewMessage() {
     }
   };
 
+  const user = getUser();
+  // Determine the user to exclude
+  const excludeUserId = user.id;
+
   return (
     <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-8">
         <form onSubmit={handleSubmit} className="grid grid-cols-4 gap-6">
@@ -121,7 +129,7 @@ export default function NewMessage() {
 
             {/* Attachment */}
             <div>
-                <label className="block font-medium mb-1">Anhange</label>
+                <label className="block font-medium mb-1">Anhänge</label>
                 <input
                 type="file"
                 multiple
@@ -131,7 +139,7 @@ export default function NewMessage() {
             </div>
 
             {/* Is Announcement */}
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
                 <input
                 type="checkbox"
                 checked={isAnnouncement}
@@ -139,61 +147,83 @@ export default function NewMessage() {
                 className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-300"
                 />
                 <label className="font-medium">Ist eine Ankündigung</label>
-            </div>
+            </div> */}
             </div>
 
             {/* Right Column: 1/4 width */}
             <div className="col-span-1 space-y-4">
-            {/* Priority */}
-            <div>
-                <label className="block font-medium mb-1">Priorität</label>
-                <select
-                className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                value={priority}
-                onChange={e => setPriority(e.target.value as any)}
-                >
-                <option value="Niedrig">Niedrig</option>
-                <option value="Mittel">Mittel</option>
-                <option value="Hoch">Hoch</option>
-                </select>
-            </div>
+              {/* Priority */}
+              <div>
+                  <label className="block font-medium mb-1">Priorität</label>
+                  <select
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  value={priority}
+                  onChange={e => setPriority(e.target.value as any)}
+                  >
+                  <option value="Niedrig">Niedrig</option>
+                  <option value="Mittel">Mittel</option>
+                  <option value="Hoch">Hoch</option>
+                  </select>
+              </div>
 
-            {/* Status */}
-            <div>
-                <label className="block font-medium mb-1">Status</label>
-                <select
-                required
-                className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                value={statusId}
-                onChange={e => setStatusId(Number(e.target.value))}
-                >
-                <option value="">Status auswählen</option>
-                {statuses.map(s => (
-                    <option key={s.id} value={s.id}>
-                    {s.name}
-                    </option>
-                ))}
-                </select>
-            </div>
+              {/* Status */}
+              <div>
+                  <label className="block font-medium mb-1">Status</label>
+                  <select
+                  required
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  value={statusId}
+                  onChange={e => setStatusId(Number(e.target.value))}
+                  >
+                  <option value="">Status auswählen</option>
+                  {statuses.map(s => (
+                      <option key={s.id} value={s.id}>
+                      {s.name}
+                      </option>
+                  ))}
+                  </select>
+              </div>
 
-            {/* Assignees */}
-            <div>
-                <label className="block font-medium mb-1">empfänger</label>
-                <select
-                multiple
-                className="w-full border border-gray-300 rounded-lg p-2 h-40 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                value={assignees.map(String)}
-                onChange={e =>
-                    setAssignees(Array.from(e.target.selectedOptions, o => Number(o.value)))
-                }
-                >
-                {users.map(u => (
-                    <option key={u.id} value={u.id}>
-                    {u.name}
-                    </option>
-                ))}
-                </select>
-            </div>
+              {/* Subscribers */}
+              <div>
+                  <label className="block font-medium mb-1">Abonnenten</label>
+                  <select
+                  multiple
+                  className="w-full border border-gray-300 rounded-lg p-2 h-40 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  value={assignees.map(String)}
+                  onChange={e =>
+                      setAssignees(Array.from(e.target.selectedOptions, o => Number(o.value)))
+                  }
+                  >
+                  {users
+                    .filter(u => u.id !== excludeUserId)
+                    .map(u => (
+                      <option key={u.id} value={u.id}>
+                      {u.name}
+                      </option>
+                  ))}
+                  </select>
+              </div>
+
+              {/* Assignee */}
+              <div>
+                  <label className="block font-medium mb-1">Empfänger</label>
+                  <select
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  value={ assignee ?? "" }
+                  onChange={e =>
+                    setAssignee(Number(e.target.value))
+                  }
+                  >
+                  {users
+                    .filter(u => u.id !== excludeUserId)
+                    .map(u => (
+                      <option key={u.id} value={u.id}>
+                      {u.name}
+                      </option>
+                  ))}
+                  </select>
+              </div>
             </div>
 
             {/* Actions */}

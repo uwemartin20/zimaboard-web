@@ -12,11 +12,11 @@ export default function SummaryCards({ title, messages, count, onClick }: Summar
     // Choose icon based on card title
     const getCardIcon = () => {
       switch (title.toLowerCase()) {
-        case "zugewiesen":
+        case "meine nachrichten":
           return <FaUserCheck className="text-blue-500 w-5 h-5" />;
-        case "erstellt":
+        case "zugewiesene nachrichten":
           return <FaUserEdit className="text-green-500 w-5 h-5" />;
-        case "ankündigungen":
+        case "pin wand":
           return <FaBullhorn className="text-yellow-500 w-5 h-5" />;
         default:
           return <FaUserCheck className="w-5 h-5" />;

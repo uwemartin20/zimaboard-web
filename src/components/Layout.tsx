@@ -52,9 +52,9 @@ export default function Layout() {
 
   const titleMap: Record<string, string> = {
     "/": "Dashboard",
-    "/assigned": "Zugewiesene",
-    "/created": "Erstellte",
-    "/announcement": "Ankündigungen",
+    "/assigned": "Meine Nachrichten",
+    "/created": "Zugewiesene Nachrichten",
+    "/announcement": "Pin Wand",
     "/profile": "Profil",
     "/new-message": "Neue Nachricht",
     "/settings/departments": "Abteilungen",

@@ -5,9 +5,9 @@ export default function Sidebar() {
     const user = getUser();
   const mainLinks = [
     { name: "Dashboard", path: "/" },
-    { name: "Zugewiesen", path: "/assigned" },
-    { name: "Erstellt", path: "/created" },
-    { name: "Ankündigungen", path: "/announcement" },
+    { name: "Meine Nachrichten", path: "/assigned" },
+    { name: "Zugewiesene Nachrichten", path: "/created" },
+    { name: "Pin Wand", path: "/announcement" },
   ];
 
   const settingsLinks = [
