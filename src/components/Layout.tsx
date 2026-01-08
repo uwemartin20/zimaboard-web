@@ -30,6 +30,7 @@ export default function Layout() {
 
     subscriptionRef.current = true;
     const appEnv = import.meta.env.VITE_APP_ENV
+    console.log(appEnv);
 
     const userChannel = echo.private(`${appEnv}.user.${user.id}`);
     userChannel.listen(".chat.created", (data: any) => {
@@ -46,7 +47,7 @@ export default function Layout() {
     return () => {
         userChannel.stopListening(".chat.created");
         userChannel.stopListening(".message.created");
-        echo.leave(`user.${user.id}`);
+        echo.leave(`${appEnv}.user.${user.id}`);
         subscriptionRef.current = false;
     };
   }, [echo, addNotification]);
