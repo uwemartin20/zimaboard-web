@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/client";
-import { useNavigate } from "react-router-dom";
 import { FaTimes } from "react-icons/fa";
 import { getUser } from "../api/auth";
 
@@ -38,7 +37,6 @@ type NewMessageProps = {
 };
 
 export default function NewMessage({ mode, onClose, message }: NewMessageProps) {
-  const navigate = useNavigate();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -402,7 +400,7 @@ export default function NewMessage({ mode, onClose, message }: NewMessageProps) 
               <div className="col-span-4 flex justify-end gap-4 pt-4">
               <button
                   type="button"
-                  onClick={() => navigate(-1)}
+                  onClick={() => onClose()}
                   className="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-100 transition"
               >
                   Stornieren
