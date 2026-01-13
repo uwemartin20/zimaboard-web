@@ -261,7 +261,7 @@ export default function MessageModal({
               {message.assignees?.length > 0 && (
                 <>
                   <h3 className="font-semibold mb-2">Abonnenten</h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {message.assignees.map(u => (
                       <UserCircle key={u.id} user={u} color="bg-gray-600" size="sm" />
                     ))}

@@ -30,7 +30,6 @@ export default function Layout() {
 
     subscriptionRef.current = true;
     const appEnv = import.meta.env.VITE_APP_ENV
-    console.log(appEnv);
 
     const userChannel = echo.private(`${appEnv}.user.${user.id}`);
     userChannel.listen(".chat.created", (data: any) => {

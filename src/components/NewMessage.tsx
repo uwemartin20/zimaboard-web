@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { FaTimes } from "react-icons/fa";
@@ -13,6 +13,7 @@ interface User {
     id: number;
     name: string;
     email: string;
+    department: { id: number; name: string; color: string };
 };
 
 interface Message {
@@ -153,6 +154,29 @@ export default function NewMessage({ mode, onClose, message }: NewMessageProps) 
   // Determine the user to exclude
   const excludeUserId = message?.creator?.id ?? user.id;
 
+  const selectableUsers = useMemo(
+    () => users.filter(u => u.id !== excludeUserId),
+    [users, excludeUserId]
+  );
+  const selectableUserIds = useMemo(
+    () => selectableUsers.map(u => u.id),
+    [selectableUsers]
+  );
+  const allSelected = useMemo(
+    () => selectableUserIds.every(id => assignees.includes(id)),
+    [selectableUserIds, assignees]
+  );
+
+  const departments = useMemo(
+    () =>
+      Array.from(
+        new Map(
+        selectableUsers.map(u => [u.department.id, u.department])
+      ).values()
+    ),
+    [selectableUsers]
+  );
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
@@ -252,23 +276,104 @@ export default function NewMessage({ mode, onClose, message }: NewMessageProps) 
 
                 {/* Subscribers */}
                 <div>
-                    <label className="block font-medium mb-1">Abonnenten</label>
-                    <select
-                    multiple
-                    className="w-full border border-gray-300 rounded-lg p-2 h-40 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                    value={assignees.map(String)}
-                    onChange={e =>
-                        setAssignees(Array.from(e.target.selectedOptions, o => Number(o.value)))
-                    }
+                  <label className="block font-medium mb-2">Abonnenten</label>
+
+                  {/* Filter / Select buttons */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {/* Alle button */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setAssignees(allSelected ? [] : selectableUserIds)
+                      }
+                      className={`text-xs px-3 py-1 rounded border transition
+                        ${
+                          allSelected
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "border-blue-600 text-blue-600 hover:bg-blue-50"
+                        }`}
                     >
+                      Alle
+                    </button>
+
+                    {/* Department buttons */}
+                    {departments.map(dep => {
+                      const depUserIds = users
+                        .filter(
+                          u => u.id !== excludeUserId && u.department.id === dep.id
+                        )
+                        .map(u => u.id);
+
+                      const depFullySelected =
+                        depUserIds.length > 0 &&
+                        depUserIds.every(id => assignees.includes(id));
+
+                      return (
+                        <button
+                          key={dep.id}
+                          type="button"
+                          onClick={() =>
+                            setAssignees(prev =>
+                              depFullySelected
+                                ? prev.filter(id => !depUserIds.includes(id))
+                                : Array.from(new Set([...prev, ...depUserIds]))
+                            )
+                          }
+                          className={`text-xs px-3 py-1 rounded border transition`}
+                          style={
+                            depFullySelected
+                              ? {
+                                  backgroundColor: dep.color,
+                                  borderColor: dep.color,
+                                  color: "#fff",
+                                }
+                              : {
+                                  borderColor: dep.color,
+                                  color: dep.color,
+                                }
+                          }
+                        >
+                          {dep.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
                     {users
                       .filter(u => u.id !== excludeUserId)
-                      .map(u => (
-                        <option key={u.id} value={u.id}>
-                        {u.name}
-                        </option>
-                    ))}
-                    </select>
+                      .map(u => {
+                        const isSelected = assignees.includes(u.id);
+
+                        return (
+                          <label
+                            key={u.id}
+                            className={`flex items-center gap-3 p-2 rounded-md cursor-pointer
+                              border transition
+                              ${
+                                isSelected
+                                  ? "border-blue-500 bg-blue-50"
+                                  : "border-transparent hover:border-gray-300 hover:bg-gray-50"
+                              }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                setAssignees(prev =>
+                                  isSelected
+                                    ? prev.filter(id => id !== u.id)
+                                    : [...prev, u.id]
+                                );
+                              }}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                            />
+
+                            <span className="select-none">{u.name}</span>
+                          </label>
+                        );
+                      })}
+                  </div>
                 </div>
 
                 {/* Assignee */}
