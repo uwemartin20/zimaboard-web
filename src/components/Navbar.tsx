@@ -11,7 +11,7 @@ type NavbarProps = {
 };
 
 export default function Navbar({ title, logout }: NavbarProps) {
-    const { notifications, markAllAsRead, removeNotification } = useNotifications();
+    const { notifications, markAllAsRead, markAsRead, removeNotification } = useNotifications();
     const [open, setOpen] = useState(false);
     const [messageModel, setMessageModel] = useState(false);
     const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -85,22 +85,39 @@ export default function Navbar({ title, logout }: NavbarProps) {
                         <div className="p-4 text-gray-500 text-sm">Keine Mitteilungen</div>
                         )}
                         {notifications.map(n => (
-                        <div
-                            key={n.id}
-                            className={`p-3 border-b cursor-pointer ${!n.read ? "bg-blue-50" : ""}`}
-                            onClick={() => {
-                                // Open the message modal for this notification
-                                navigate(`/messages/${n.message_id}`);
-                
-                                // Remove the notification since it is read
-                                removeNotification(n.id);
-                            }}
-                        >
-                            {n.message}
-                            <div className="text-xs text-gray-400">
-                            {new Date(n.timestamp).toLocaleTimeString()}
+                            <div
+                                key={n.id}
+                                className={`relative p-3 border-b ${
+                                !n.read ? "bg-blue-50" : ""
+                                }`}
+                            >
+                                {/* Remove button */}
+                                <button
+                                className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeNotification(n.id);
+                                }}
+                                >
+                                ✕
+                                </button>
+                            
+                                {/* Notification body */}
+                                <div
+                                className="cursor-pointer"
+                                onClick={() => {
+                                    if (!n.read) {
+                                    markAsRead(n.id);
+                                    }
+                                    navigate(`/messages/${n.message_id}`);
+                                }}
+                                >
+                                <div>{n.message}</div>
+                                <div className="text-xs text-gray-400">
+                                    {new Date(n.timestamp).toLocaleTimeString()}
+                                </div>
+                                </div>
                             </div>
-                        </div>
                         ))}
                     </div>
                     </div>

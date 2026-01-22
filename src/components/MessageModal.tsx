@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { FaTimes, FaTrash, FaCommentDots, FaHistory, FaEdit, FaArrowRight } from "react-icons/fa";
+import { useState, useEffect, useRef, Fragment } from "react";
+import { FaTimes, FaTrash, FaHistory, FaEdit, FaArrowRight } from "react-icons/fa";
 import { timeAgo } from "../utils/timeAgo";
 import NewMessage from "./NewMessage";
 import UserCircle from "./UserCircle";
@@ -177,21 +177,46 @@ export default function MessageModal({
             {/* Comments */}
             <div>
               <h3 className="font-semibold mb-2">Kommentare</h3>
-              <div ref={containerRef} className="border rounded p-3 max-h-64 overflow-y-auto space-y-3">
-                {chatMessages.map(c => (
-                  <div key={c.id} className="border-b pb-2 last:border-b-0">
-                    <div className="flex items-center gap-2">
-                        <FaCommentDots className="w-4 h-4 text-gray-400" />
-                        <p className="text-sm font-medium">{c.user.name}</p>
+              <div ref={containerRef} className="border rounded p-3 max-h-64 overflow-y-auto space-y-4">
+                {chatMessages.map(c => {
+                  const isMine = c.user.id === user.id;
+                  return (
+                    <div
+                      key={c.id}
+                      className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`
+                          max-w-[80%] rounded-xl px-3 py-1.5 leading-snug 
+                          ${isMine
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-200 text-gray-800"}
+                        `}
+                      >
+                        {/* Username */}
+                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                          <span className="text-[11px] font-medium opacity-80">
+                            {isMine ? "Du" : c.user.name}
+                          </span>
+                          <span
+                            className={`
+                              text-[10px]
+                              ${isMine ? "text-blue-200" : "text-gray-500"}
+                            `}
+                          >
+                            {timeAgo(c.created_at)}
+                          </span>
+                        </div>
+
+                        {/* Message */}
+                        <p className="text-sm leading-snug whitespace-pre-wrap">
+                          {c.content}
+                        </p>
+
+                      </div>
                     </div>
-                    <p className="text-gray-700 ml-6">{c.content}</p>
-                    <div className="flex justify-end mt-1">
-                        <span className="text-xs text-gray-400">
-                        {timeAgo(c.created_at)}
-                        </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Add new comment */}
@@ -199,7 +224,7 @@ export default function MessageModal({
                 <input
                   type="text"
                   className="flex-1 border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  placeholder="Add a comment..."
+                  placeholder="Kommentar schreiben..."
                   value={newComment}
                   onChange={e => setNewComment(e.target.value)}
                 />
@@ -236,6 +261,7 @@ export default function MessageModal({
 
           {/* Right column: activities & archive */}
           <div className="col-span-1 space-y-4">
+
             {/* Creator, Receiver & Subscribers */}
             <div className="flex flex-col gap-3">
 
@@ -275,8 +301,8 @@ export default function MessageModal({
               <h3 className="font-semibold mb-2">Aktivitäten</h3>
               <div className="border rounded p-3 max-h-80 overflow-y-auto space-y-2">
                 {message.activities?.map(a => (
-                  <>
-                    <div key={a.id} className="flex gap-2 text-sm">
+                  <Fragment key={a.id}>
+                    <div className="flex gap-2 text-sm">
                         <FaHistory className="w-4 h-4 text-gray-400 mt-1" />
                         <div>
                             <p className="font-medium">
@@ -296,7 +322,7 @@ export default function MessageModal({
                             {/* <p className="text-xs text-gray-400">{timeAgo(a.created_at)}</p> */}
                         </div>
                     </div>
-                    </>
+                  </Fragment>
                 ))}
               </div>
             </div>

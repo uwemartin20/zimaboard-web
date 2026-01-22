@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Fragment } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { timeAgo } from "../utils/timeAgo";
 import api from "../api/client";
-import { FaTimes, FaTrash, FaCommentDots, FaHistory, FaEdit, FaArrowRight } from "react-icons/fa";
+import { FaTimes, FaTrash, FaHistory, FaEdit, FaArrowRight } from "react-icons/fa";
 import NewMessage from "../components/NewMessage";
 import UserCircle from "../components/UserCircle";
 import { getUser } from "../api/auth";
@@ -234,22 +234,47 @@ export default function MessageDetail() {
                     <h3 className="font-semibold mb-2">Kommentare</h3>
                     <div
                     ref={containerRef}
-                    className="border rounded p-3 max-h-64 overflow-y-auto space-y-3 mb-3"
+                    className="border rounded p-3 max-h-64 overflow-y-auto space-y-4 mb-3"
                     >
-                    {message.chat_messages.map(c => (
-                        <div key={c.id} className="border-b pb-2 last:border-b-0">
-                        <div className="flex items-center gap-2">
-                            <FaCommentDots className="w-4 h-4 text-gray-400" />
-                            <p className="text-sm font-medium">{c.user.name}</p>
-                        </div>
-                        <p className="text-gray-700 ml-6">{c.content}</p>
-                        <div className="flex justify-end mt-1">
-                            <span className="text-xs text-gray-400">
-                            {timeAgo(c.created_at)}
-                            </span>
-                        </div>
-                        </div>
-                    ))}
+                      {message.chat_messages.map(c => {
+                        const isMine = c.user.id === user.id;
+                        return (
+                          <div
+                            key={c.id}
+                            className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                          >
+                            <div
+                              className={`
+                                max-w-[80%] rounded-xl px-3 py-1.5 leading-snug 
+                                ${isMine
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-gray-200 text-gray-800"}
+                              `}
+                            >
+                              {/* Username */}
+                              <div className="flex items-center justify-between gap-2 mb-0.5">
+                                <span className="text-[11px] font-medium opacity-80">
+                                  {isMine ? "Du" : c.user.name}
+                                </span>
+                                <span
+                                  className={`
+                                    text-[10px]
+                                    ${isMine ? "text-blue-200" : "text-gray-500"}
+                                  `}
+                                >
+                                  {timeAgo(c.created_at)}
+                                </span>
+                              </div>
+
+                              {/* Message */}
+                              <p className="text-sm leading-snug whitespace-pre-wrap">
+                                {c.content}
+                              </p>
+
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="flex gap-2">
                     <input
@@ -329,28 +354,28 @@ export default function MessageDetail() {
                     <h3 className="font-semibold mb-2">Aktivitäten</h3>
                     <div className="border rounded p-3 max-h-80 overflow-y-auto space-y-2">
                     {message.activities.map(a => (
-                        <>
-                        <div key={a.id} className="flex gap-2 text-sm">
-                            <FaHistory className="w-4 h-4 text-gray-400 mt-1" />
-                            <div>
-                                <p className="font-medium">
-                                    {a.user.name}{" "}
-                                    <span className="text-gray-700">{a.action}</span>{" "}
-                                    {a.assignee?.name || ""}
-                                </p>
-                            </div>
-                        </div>
-                        <div>
-                            <div>
-                                <div className="flex justify-end mt-1">
-                                    <span className="text-xs text-gray-400">
-                                        {timeAgo(a.created_at)}
-                                    </span>
-                                </div>
-                                {/* <p className="text-xs text-gray-400">{timeAgo(a.created_at)}</p> */}
-                            </div>
-                        </div>
-                        </>
+                        <Fragment key={a.id}>
+                          <div className="flex gap-2 text-sm">
+                              <FaHistory className="w-4 h-4 text-gray-400 mt-1" />
+                              <div>
+                                  <p className="font-medium">
+                                      {a.user.name}{" "}
+                                      <span className="text-gray-700">{a.action}</span>{" "}
+                                      {a.assignee?.name || ""}
+                                  </p>
+                              </div>
+                          </div>
+                          <div>
+                              <div>
+                                  <div className="flex justify-end mt-1">
+                                      <span className="text-xs text-gray-400">
+                                          {timeAgo(a.created_at)}
+                                      </span>
+                                  </div>
+                                  {/* <p className="text-xs text-gray-400">{timeAgo(a.created_at)}</p> */}
+                              </div>
+                          </div>
+                        </Fragment>
                     ))}
                     </div>
                 </div>

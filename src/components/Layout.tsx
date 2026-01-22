@@ -32,15 +32,24 @@ export default function Layout() {
     const appEnv = import.meta.env.VITE_APP_ENV
 
     const userChannel = echo.private(`${appEnv}.user.${user.id}`);
+    // 1️⃣ Notifications (source of truth)
+    userChannel.listen(".notification.created", (data: any) => {
+      console.log("Received notification.created event:", data);
+      addNotification(
+        data.id,
+        data.message_id,
+        data.message
+      );
+    });
     userChannel.listen(".chat.created", (data: any) => {
         console.log("Received chat.created event:", data);
-        addNotification(data.chat.message_id, `Neuer Kommentar von ${data.chat.user.name}: ${data.chat.content}`);
+        // addNotification(data.chat.message_id, `Neuer Kommentar von ${data.chat.user.name}: ${data.chat.content}`);
     });
 
     // Tickets/messages
     userChannel.listen(".message.created", (data: any) => {
         console.log("Received message.created event:", data);
-        addNotification(data.id, `Neue Nachricht erstellt von ${data.creator.name}: ${data.title}`);
+        // addNotification(data.id, `Neue Nachricht erstellt von ${data.creator.name}: ${data.title}`);
     });
 
     return () => {
