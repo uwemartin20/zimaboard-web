@@ -63,7 +63,7 @@ export default function Users() {
   return (
     <div>
       <div className="flex justify-between mb-4">
-        <h2 className="text-xl font-semibold"></h2>
+        <h2 className="sr-only">Benutzer</h2>
         <button
           onClick={() => setEditing({} as any)}
           className="bg-blue-600 text-white px-4 py-2 rounded"
@@ -126,7 +126,7 @@ export default function Users() {
 
       {editing && (
         <UserFormModal
-          initial={editing.id ? editing : undefined}
+          initial={editing.id ? (editing as any) : undefined}
           onSubmit={handleSave}
           onClose={() => setEditing(null)}
         />

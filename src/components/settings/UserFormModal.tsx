@@ -1,24 +1,18 @@
 import { useEffect, useState } from "react";
 import api from "../../api/client";
+import type { Department, User } from "../../types";
 
-interface Department {
-  id: number;
-  name: string;
-  color: string;
-}
-
-interface User {
-  id?: number;
-  name: string;
-  email: string;
+/** Subset of `User` we POST/PUT to the API. Mirrors the Laravel validator. */
+type UserPayload = Pick<User, "name" | "email" | "is_admin" | "department_id"> & {
   password?: string;
-  department_id?: number | null;
-  is_admin: boolean;
-}
+};
+
+/** `User` shape the form expects — `id` is only present when editing. */
+type UserFormInitial = Omit<User, "id"> & { id?: number };
 
 interface Props {
-  initial?: User;
-  onSubmit: (data: User) => void;
+  initial?: UserFormInitial;
+  onSubmit: (data: UserPayload) => void;
   onClose: () => void;
 }
 
@@ -37,7 +31,7 @@ export default function UserFormModal({ initial, onSubmit, onClose }: Props) {
   }, []);
 
   const handleSubmit = () => {
-    const payload: User = {
+    const payload: UserPayload = {
       name,
       email,
       is_admin: isAdmin,

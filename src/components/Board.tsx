@@ -2,30 +2,12 @@ import { useEffect, useState } from "react";
 import api from "../api/client";
 import MessageModal from "./MessageModal";
 import { FaShareAlt, FaUserCircle, FaTrash } from "react-icons/fa";
+import { getUser } from "../api/auth";
+import { canInteractWithMessage } from "../types/message";
 import ShareModal from "./ShareModal";
+import type { Department, Message } from "../types";
 
-interface Message {
-    id: number;
-    title: string;
-    description: string;
-    priority: "Niedrig" | "Mittel" | "Hoch";
-    attachments: { id: number; path: string; url: string; original_name: string; mime_type: string; size: number }[];
-    chat_messages: { id: number; user: { id: number; name: string }; content: string; created_at: string }[];
-    activities: { id: number; user: { id: number; name: string }; assignee: { id: number; name: string }; action: string; created_at: string }[];
-    creator: { id: number; name: string; department: { name: string } | null };
-    status: { name: string; color: string };
-    status_id: number;
-    assignees: Array<{ id: number; name: string; department: { id: number; name: string; color: string } }>;
-    assignee: { id: number; name: string; };
-    is_archived: boolean;
-    is_announcement: boolean;
-}
-
-interface Department {
-    id: number;
-    name: string;
-    color: string;
-}
+export type { Message, Department };
 
 interface BoardProps {
   type: "assigned" | "created" | "announcement";
@@ -34,8 +16,9 @@ interface BoardProps {
 export default function Board({ type }: BoardProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [filterArchived, setFilterArchived] = useState(false); // null = all
+  const [filterArchived, setFilterArchived] = useState<boolean | null>(null); // null = all
+  const [loading, setLoading] = useState(true);
+  const user = getUser();
     const [filterCreator, setFilterCreator] = useState<number | null>(null); // creator id
     const [filterPriority, setFilterPriority] = useState<"hoch" | "mittel" | "niedrig" | null>(null);
     const [filterStatus, setFilterStatus] = useState<string | null>(null); // status name
@@ -143,7 +126,7 @@ export default function Board({ type }: BoardProps) {
                 type="button"
                 className={`relative inline-flex flex-shrink-0 h-6 w-12 border-2 border-transparent rounded-full cursor-pointer transition-colors duration-200 ease-in-out
                 ${filterArchived ? "bg-blue-600" : "bg-gray-300"}`}
-                onClick={() => setFilterArchived(prev => !prev)}
+                onClick={() => setFilterArchived((prev: boolean | null) => !!prev ? false : true)}
             >
                 <span
                 className={`inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition-transform duration-200 ease-in-out
@@ -202,16 +185,18 @@ export default function Board({ type }: BoardProps) {
                     {/* Footer */}
                     <div className="border-t border-gray-200 mt-3 pt-2 flex justify-between items-center">
                         {/* Share icon */}
+                        {canInteractWithMessage(msg, user) && (
                         <button
-                        className="text-blue-600 hover:text-blue-800 transition flex items-center gap-1"
-                        onClick={e => {
-                            e.stopPropagation();
-                            setShareMessage(msg);
-                            setShareModalOpen(true);
-                        }}
+                            className="text-blue-600 hover:text-blue-800 transition flex items-center gap-1"
+                            onClick={e => {
+                                e.stopPropagation();
+                                setShareMessage(msg);
+                                setShareModalOpen(true);
+                            }}
                         >
-                        <FaShareAlt /> Teilen
+                            <FaShareAlt /> Teilen
                         </button>
+                    )}
 
                         {/* Creator + Assignees */}
                         <div className="text-gray-600 text-sm">
@@ -263,6 +248,7 @@ export default function Board({ type }: BoardProps) {
         fetchBoard(); // refresh board
         setSelectedMessage(prev => prev && { ...prev, is_archived: archived });
         }}
+        onSaved={fetchBoard}
         onAddComment={async text => {
         const res = await api.post(`/messages/${selectedMessage.id}/comments`, { text });
         return res.data.data;

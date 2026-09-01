@@ -4,52 +4,16 @@ import { timeAgo } from "../utils/timeAgo";
 import NewMessage from "./NewMessage";
 import UserCircle from "./UserCircle";
 import { getUser } from "../api/auth";
+import { canAssignToMe, canEditMessage, canInteractWithMessage } from "../types/message";
 import api from "../api/client";
-
-interface Comment {
-  id: number;
-  user: { id: number; name: string };
-  content: string;
-  created_at: string;
-}
-
-interface Activity {
-  assignee: { id: number; name: string };
-  id: number;
-  user: { id: number; name: string };
-  action: string;
-  created_at: string;
-}
-
-interface Attachment {
-  id: number;
-  path: string;
-    url: string;
-  original_name: string;
-  mime_type: string;
-  size: number;
-}
+import type { Comment, Message } from "../types";
 
 interface MessageModalProps {
-  message: {
-    creator: any;
-    assignees: Array<any>;
-    assignee: { id: number; name: string; };
-    status: any;
-    id: number;
-    title: string;
-    description: string;
-    priority: "Niedrig" | "Mittel" | "Hoch";
-    status_id: number;
-    attachments: Attachment[];
-    chat_messages: Comment[];
-    activities: Activity[];
-    is_archived: boolean;
-    is_announcement: boolean;
-  };
+  message: Message;
   onClose: () => void;
   onArchiveToggle: (archived: boolean) => void;
   onAddComment: (text: string) => Promise<Comment> | Comment;
+  onSaved?: () => void; // invoked after successful edit (PUT)
 }
 
 export default function MessageModal({
@@ -57,6 +21,7 @@ export default function MessageModal({
   onClose,
   onArchiveToggle,
   onAddComment,
+  onSaved,
 }: MessageModalProps) {
   const [newComment, setNewComment] = useState("");
   const [chatMessages, setChatMessages] = useState<Comment[]>(message.chat_messages || []);
@@ -81,8 +46,8 @@ export default function MessageModal({
       : "bg-blue-100";
 
     const handleAddComment = async () => {
-        setLoading(true);
         if (!newComment.trim()) return;
+        setLoading(true);
         try {
             const res: Comment = await onAddComment(newComment) as Comment;
             setChatMessages(prev => [...prev, res]);
@@ -90,10 +55,15 @@ export default function MessageModal({
         } catch (err) {
             console.error(err);
         }
-        setLoading(false);
+        finally {
+            setLoading(false);
+        }
     };
 
     const user = getUser();
+  const mayEdit = canEditMessage(message, user);
+  const mayInteract = canInteractWithMessage(message, user);
+  const mayAssignToMe = canAssignToMe(message, user);
 
     const [assignedToMe, setAssignedToMe] = useState<boolean>(() => {
       return message?.assignee?.id === user.id;
@@ -134,9 +104,11 @@ export default function MessageModal({
                     {message.status.name}
                 </span>
                 {message.title}
-                <button onClick={() => setMessageModal(true)} className="px-4 text-gray-500 hover:text-blue-800">
-                    <FaEdit className="w-6 h-6" />
-                </button> 
+                {mayEdit && (
+                    <button onClick={() => setMessageModal(true)} className="px-4 text-gray-500 hover:text-blue-800">
+                        <FaEdit className="w-6 h-6" />
+                    </button>
+                )}
             </h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
             <FaTimes className="text-lg" />
@@ -147,7 +119,8 @@ export default function MessageModal({
             <NewMessage 
             mode="edit"
             onClose={() => setMessageModal(false)}
-            message={message} />
+            message={message}
+            onSaved={onSaved} />
         )}
 
         <div className="grid grid-cols-4 gap-6 p-6">
@@ -220,43 +193,47 @@ export default function MessageModal({
               </div>
 
               {/* Add new comment */}
-              <div className="mt-3 flex gap-2">
-                <input
-                  type="text"
-                  className="flex-1 border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  placeholder="Kommentar schreiben..."
-                  value={newComment}
-                  onChange={e => setNewComment(e.target.value)}
-                />
-                <button
-                  type="button"
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                  onClick={handleAddComment}
-                >
-                  {loading ? "Wird gesendet..." : "Schicken"}
-                </button>
-              </div>
+              {mayInteract && (
+                <div className="mt-3 flex gap-2">
+                  <input
+                    type="text"
+                    className="flex-1 border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    placeholder="Kommentar schreiben..."
+                    value={newComment}
+                    onChange={e => setNewComment(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                    onClick={handleAddComment}
+                  >
+                    {loading ? "Wird gesendet..." : "Schicken"}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Assign to me */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700 leading-none">Mir Zuweisen</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={assignedToMe}
-                    onChange={e => onAssignToMeToggle(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer 
-                    peer-checked:bg-blue-600 
-                    after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                    after:bg-white after:rounded-full after:h-5 after:w-5
-                    after:transition-all peer-checked:after:translate-x-full">
-                  </div>
-                </label>
-            </div>
+            {mayAssignToMe && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700 leading-none">Mir Zuweisen</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={assignedToMe}
+                      onChange={e => onAssignToMeToggle(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer 
+                      peer-checked:bg-blue-600 
+                      after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                      after:bg-white after:rounded-full after:h-5 after:w-5
+                      after:transition-all peer-checked:after:translate-x-full">
+                    </div>
+                  </label>
+              </div>
+            )}
           </div>
 
           {/* Right column: activities & archive */}
@@ -328,30 +305,32 @@ export default function MessageModal({
             </div>
 
             {/* Archive Checkbox */}
-            <div className="flex justify-between items-center mb-6">
-                <div className="flex flex-col items-end gap-2">
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700"><FaTrash className="text-2xl text-gray-700" /></span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={message.is_archived}
-                        onChange={e => onArchiveToggle(e.target.checked)}
-                        className="sr-only peer"
-                    />
-                    <div
-                        className={`w-12 h-6 bg-gray-300 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300
-                                    peer-checked:bg-blue-600 transition-all duration-300`}
-                    />
-                    <div
-                        className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transform
-                                    transition-transform duration-300
-                                    ${message.is_archived ? "translate-x-5" : ""}`}
-                    />
-                    </label>
-                </div>
-            </div>
+            {mayEdit && (
+              <div className="flex justify-between items-center mb-6">
+                  <div className="flex flex-col items-end gap-2">
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700"><FaTrash className="text-2xl text-gray-700" /></span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                          type="checkbox"
+                          checked={message.is_archived}
+                          onChange={e => onArchiveToggle(e.target.checked)}
+                          className="sr-only peer"
+                      />
+                      <div
+                          className={`w-12 h-6 bg-gray-300 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300
+                                      peer-checked:bg-blue-600 transition-all duration-300`}
+                      />
+                      <div
+                          className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transform
+                                      transition-transform duration-300
+                                      ${message.is_archived ? "translate-x-5" : ""}`}
+                      />
+                      </label>
+                  </div>
+              </div>
+            )}
             {/* <div className="flex items-center gap-2 mt-4">
               <input
                 type="checkbox"

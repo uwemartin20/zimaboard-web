@@ -2,31 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import api from "../api/client";
 import { FaTimes } from "react-icons/fa";
 import { getUser } from "../api/auth";
-
-interface MessageStatus {
-  id: number;
-  name: string;
-}
-
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    department: { id: number; name: string; color: string };
-};
-
-interface Message {
-    id: number;
-    title: string;
-    description: string;
-    creator: any;
-    priority: "Niedrig" | "Mittel" | "Hoch";
-    attachments: { id: number; path: string; original_name: string; mime_type: string; size: number }[];
-    status_id: number;
-    assignees: Array<{ id: number; name: string; }>;
-    assignee: { id: number; name: string; };
-    is_announcement: boolean;
-}
+import type { Message, MessageStatus, User } from "../types";
 
 type MessageFormMode = "create" | "edit";
 
@@ -34,9 +10,10 @@ type NewMessageProps = {
   mode: MessageFormMode;
   onClose: () => void;
   message?: Message;
+  onSaved?: () => void;
 };
 
-export default function NewMessage({ mode, onClose, message }: NewMessageProps) {
+export default function NewMessage({ mode, onClose, message, onSaved }: NewMessageProps) {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -61,7 +38,7 @@ export default function NewMessage({ mode, onClose, message }: NewMessageProps) 
       setDescription(message.description);
       setPriority(message.priority);
       setStatusId(message.status_id);
-      setAssignee(message.assignee?.id)
+      setAssignee(message.assignee?.id ?? null);
       setAssignees(message.assignees.map(a => a.id));
       setIsAnnouncement(message.is_announcement);
     }
@@ -139,6 +116,9 @@ export default function NewMessage({ mode, onClose, message }: NewMessageProps) 
           await api.post("/store-attachments", formData);
         }
 
+      if (mode === "edit" && onSaved) {
+        onSaved();
+      }
       onClose();
     } catch (err) {
       console.error(err);

@@ -2,27 +2,9 @@ import { useState, useEffect } from "react";
 import { FaTimes, FaUserPlus } from "react-icons/fa";
 import api from "../api/client";
 import { getUser } from "../api/auth";
+import type { Message, UserSummary } from "../types";
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
-interface Message {
-    id: number;
-    title: string;
-    description: string;
-    priority: "Niedrig" | "Mittel" | "Hoch";
-    attachments: { id: number; path: string; original_name: string; mime_type: string; size: number }[];
-    chat_messages: { id: number; user: { id: number; name: string }; content: string; created_at: string }[];
-    activities: { id: number; user: { id: number; name: string }; assignee: { id: number; name: string }; action: string; created_at: string }[];
-    creator: { id: number; name: string; department: { name: string } | null };
-    status: { name: string; color: string };
-    assignees: Array<{ id: number; name: string; department: { id: number; name: string; color: string } }>;
-    is_archived: boolean;
-    is_announcement: boolean;
-}
+export type { Message };
 
 interface ShareModalProps {
   message: Message;
@@ -31,10 +13,9 @@ interface ShareModalProps {
   onShareSuccess: () => void; // Callback after sharing
 }
 
-const user = getUser();
-
 export default function ShareModal({ message, isOpen, onClose, onShareSuccess }: ShareModalProps) {
-  const [users, setUsers] = useState<User[]>([]);
+  const user = getUser();
+  const [users, setUsers] = useState<UserSummary[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   // const [confirmOpen, setConfirmOpen] = useState(false);

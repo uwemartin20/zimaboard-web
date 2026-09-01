@@ -1,6 +1,7 @@
 import api from "../api/client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import type { Comment } from "../types";
 
 export interface Notification {
   id: number;
@@ -9,6 +10,29 @@ export interface Notification {
   read: boolean;
   timestamp: number;
 }
+
+type MessageListener = (comment: Comment) => void;
+
+// Module-scope pub/sub: lets pages that render a message (MessageDetail, etc.)
+// react to realtime events without coupling to NotificationContext's UI.
+const messageSubscribers = new Map<number, Set<MessageListener>>();
+
+export const subscribeToMessage = (messageId: number, listener: MessageListener) => {
+  let set = messageSubscribers.get(messageId);
+  if (!set) {
+    set = new Set();
+    messageSubscribers.set(messageId, set);
+  }
+  set.add(listener);
+  return () => {
+    set?.delete(listener);
+    if (set && set.size === 0) messageSubscribers.delete(messageId);
+  };
+};
+
+export const notifyMessage = (messageId: number, comment: Comment) => {
+  messageSubscribers.get(messageId)?.forEach(l => l(comment));
+};
 
 interface NotificationContextType {
   notifications: Notification[];

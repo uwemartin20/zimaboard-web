@@ -11,7 +11,7 @@ interface Props {
     const [color, setColor] = useState(initial?.color ?? "#2563eb");
   
     return (
-      <div className="fixed inset-0 bg-black/30 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
         <div className="bg-white rounded p-6 w-96">
           <h3 className="text-lg font-semibold mb-4">
             {initial ? "Bearbeiten" : "Erstellen"}

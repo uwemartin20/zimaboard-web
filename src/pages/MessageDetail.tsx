@@ -6,47 +6,13 @@ import { FaTimes, FaTrash, FaHistory, FaEdit, FaArrowRight } from "react-icons/f
 import NewMessage from "../components/NewMessage";
 import UserCircle from "../components/UserCircle";
 import { getUser } from "../api/auth";
-
-interface Comment {
-  id: number;
-  user: { id: number; name: string };
-  content: string;
-  created_at: string;
-}
-
-interface Activity {
-  assignee: { id: number; name: string } | null;
-  id: number;
-  user: { id: number; name: string };
-  action: string;
-  created_at: string;
-}
-
-interface Attachment {
-  id: number;
-  path: string;
-  url: string;
-  original_name: string;
-  mime_type: string;
-  size: number;
-}
-
-interface Message {
-  id: number;
-  title: string;
-  description: string;
-  priority: "Niedrig" | "Mittel" | "Hoch";
-  status: { name: string; color: string };
-  creator: { name: string };
-  assignees: Array<{ id: number; name: string }>;
-  assignee: { id: number; name: string; };
-  chat_messages: Comment[];
-  activities: Activity[];
-  attachments: Attachment[];
-  is_archived: boolean;
-    is_announcement: boolean;
-    status_id: number;
-}
+import { subscribeToMessage } from "../context/NotificationContext";
+import {
+  canAssignToMe,
+  canEditMessage,
+  canInteractWithMessage,
+} from "../types/message";
+import type { Message } from "../types";
 
 export default function MessageDetail() {
   const { id } = useParams<{ id: string }>();
@@ -89,6 +55,20 @@ export default function MessageDetail() {
     }
   }, [message?.chat_messages]);
 
+  // Real-time: append incoming comments without a page refresh.
+  useEffect(() => {
+    if (!message) return;
+    const unsubscribe = subscribeToMessage(message.id, comment => {
+      setMessage(prev => {
+        if (!prev) return prev;
+        // De-dupe in case the sender also receives the echo.
+        if (prev.chat_messages.some(c => c.id === comment.id)) return prev;
+        return { ...prev, chat_messages: [...prev.chat_messages, comment] };
+      });
+    });
+    return unsubscribe;
+  }, [message?.id]);
+
   if (!message) return <p>Lade Nachricht...</p>;
 
   const priorityBg =
@@ -99,8 +79,8 @@ export default function MessageDetail() {
       : "bg-blue-100";
 
   const handleAddComment = async () => {
-    setLoading(true);
     if (!newComment.trim()) return;
+    setLoading(true);
     try {
       const res = await api.post(`/messages/${message.id}/comments`, { text: newComment });
       setMessage(prev => prev && {
@@ -111,6 +91,7 @@ export default function MessageDetail() {
       setLoading(false);
     } catch (err) {
       console.error(err);
+      setLoading(false);
     }
   };
 
@@ -126,6 +107,9 @@ export default function MessageDetail() {
   const user = getUser();
 
   const assignedToMe = assignee === user.id;
+  const mayEdit = canEditMessage(message, user);
+  const mayInteract = canInteractWithMessage(message, user);
+  const mayAssignToMe = canAssignToMe(message, user);
 
     const onAssignToMeToggle = async (checked: boolean) => {
 
@@ -133,17 +117,9 @@ export default function MessageDetail() {
         await api.put(`/messages/${message.id}/assign-to-me`, {
           assigned_to: user.id,
         });
+        setAssignee(checked ? user.id : null);
       } catch (error) {
         console.error("Assign failed:", error);
-      }
-    
-      if (checked) {
-        // assign message to current user
-        setAssignee(user.id);
-        console.log(assignee);
-      } else {
-        // unassign (set to null)
-        setAssignee(null);
       }
     };
 
@@ -153,26 +129,28 @@ export default function MessageDetail() {
             <div className="flex flex-col items-end gap-2">
             </div>
             {/* Archive toggle */}
-            <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700"><FaTrash className="text-2xl text-gray-700" /></span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                    type="checkbox"
-                    checked={message.is_archived}
-                    onChange={e => handleArchiveToggle(e.target.checked)}
-                    className="sr-only peer"
-                />
-                <div
-                    className={`w-12 h-6 bg-gray-300 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300
-                                peer-checked:bg-blue-600 transition-all duration-300`}
-                />
-                <div
-                    className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transform
-                                transition-transform duration-300
-                                ${message.is_archived ? "translate-x-5" : ""}`}
-                />
-                </label>
-            </div>
+            {mayEdit && (
+              <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700"><FaTrash className="text-2xl text-gray-700" /></span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                      type="checkbox"
+                      checked={message.is_archived}
+                      onChange={e => handleArchiveToggle(e.target.checked)}
+                      className="sr-only peer"
+                  />
+                  <div
+                      className={`w-12 h-6 bg-gray-300 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300
+                                  peer-checked:bg-blue-600 transition-all duration-300`}
+                  />
+                  <div
+                      className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transform
+                                  transition-transform duration-300
+                                  ${message.is_archived ? "translate-x-5" : ""}`}
+                  />
+                  </label>
+              </div>
+            )}
         </div>
 
         {/* Header */}
@@ -185,9 +163,11 @@ export default function MessageDetail() {
                     {message.status.name}
                 </span>
                 {message.title}
-                <button onClick={() => setMessageModal(true)} className="px-4 text-gray-500 hover:text-blue-800">
-                    <FaEdit className="w-6 h-6" />
-                </button> 
+                {mayEdit && (
+                  <button onClick={() => setMessageModal(true)} className="px-4 text-gray-500 hover:text-blue-800">
+                      <FaEdit className="w-6 h-6" />
+                  </button>
+                )}
             </h2>
             
             <button
@@ -199,10 +179,11 @@ export default function MessageDetail() {
         </div>
 
         {messageModal && (
-            <NewMessage 
+            <NewMessage
               mode="edit"
               onClose={() => setMessageModal(false)}
-              message={message} />
+              message={message}
+              onSaved={fetchMessage} />
         )}
 
         <div className="grid grid-cols-12 gap-6">
@@ -276,42 +257,46 @@ export default function MessageDetail() {
                         );
                       })}
                     </div>
-                    <div className="flex gap-2">
-                    <input
-                        type="text"
-                        className="flex-1 border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        placeholder="Kommentar hinzufügen..."
-                        value={newComment}
-                        onChange={e => setNewComment(e.target.value)}
-                    />
-                    <button
-                        onClick={handleAddComment}
-                        disabled={loading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                    >
-                        Schicken
-                    </button>
-                    </div>
+                    {mayInteract && (
+                      <div className="flex gap-2">
+                        <input
+                            type="text"
+                            className="flex-1 border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            placeholder="Kommentar hinzufügen..."
+                            value={newComment}
+                            onChange={e => setNewComment(e.target.value)}
+                        />
+                        <button
+                            onClick={handleAddComment}
+                            disabled={loading}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Schicken
+                        </button>
+                      </div>
+                    )}
                 </div>
 
                 {/* Assign to me */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700 leading-none">Mir Zuweisen</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={assignedToMe}
-                        onChange={e => onAssignToMeToggle(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer 
-                        peer-checked:bg-blue-600 
-                        after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                        after:bg-white after:rounded-full after:h-5 after:w-5
-                        after:transition-all peer-checked:after:translate-x-full">
-                      </div>
-                    </label>
-                </div>
+                {mayAssignToMe && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700 leading-none">Mir Zuweisen</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={assignedToMe}
+                          onChange={e => onAssignToMeToggle(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer 
+                          peer-checked:bg-blue-600 
+                          after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                          after:bg-white after:rounded-full after:h-5 after:w-5
+                          after:transition-all peer-checked:after:translate-x-full">
+                        </div>
+                      </label>
+                  </div>
+                )}
             </div>
 
             <div className="col-span-12 lg:col-span-3 space-y-6">

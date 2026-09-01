@@ -2,18 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import api from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { getUser } from "../api/auth";
-
-interface MessageStatus {
-  id: number;
-  name: string;
-}
-
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    department: { id: number; name: string; color: string };
-};
+import type { MessageStatus, User } from "../types";
 
 export default function NewMessage() {
   const navigate = useNavigate();

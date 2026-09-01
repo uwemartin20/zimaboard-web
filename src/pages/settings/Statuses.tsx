@@ -34,7 +34,7 @@ export default function Statuses() {
   return (
     <div>
       <div className="flex justify-between mb-4">
-        <h2 className="text-xl font-semibold"></h2>
+        <h2 className="sr-only">Status</h2>
         <button
           onClick={() => setEditing({})}
           className="bg-blue-600 text-white px-4 py-2 rounded"

@@ -2,14 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../api/client";
 import SummaryCard from "../components/SummaryCard";
 import { useNavigate } from "react-router-dom";
-
-interface Message {
-  id: number;
-  title: string;
-  status: { name: string; color: string };
-  priority: string;
-    creator: { name: string; department: { name: string, color: string } };
-}
+import type { Message } from "../types";
 
 export default function Dashboard() {
   const [assigned, setAssigned] = useState<Message[]>([]);

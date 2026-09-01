@@ -13,7 +13,7 @@ type NavbarProps = {
 export default function Navbar({ title, logout }: NavbarProps) {
     const { notifications, markAllAsRead, markAsRead, removeNotification } = useNotifications();
     const [open, setOpen] = useState(false);
-    const [messageModel, setMessageModel] = useState(false);
+    const [messageModal, setMessageModal] = useState(false);
     const dropdownRef = useRef<HTMLDivElement | null>(null);
 
     const unreadCount = notifications.filter(n => !n.read).length;
@@ -41,17 +41,17 @@ export default function Navbar({ title, logout }: NavbarProps) {
       <div className="flex items-center gap-4">
         {/* New Message Button */}
         <div
-            onClick={() => setMessageModel(true)}
+            onClick={() => setMessageModal(true)}
             className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded hover:bg-blue-100 transition-colors"
             title="Neue Nachricht erstellen"
         >
             <span className="font-medium text-blue-600">Neue Nachricht</span>
         </div>
 
-        {messageModel && (
-            <NewMessage 
+        {messageModal && (
+            <NewMessage
             mode="create"
-            onClose={() => setMessageModel(false)} />
+            onClose={() => setMessageModal(false)} />
         )}
 
         <div className="flex items-center gap-4 relative">

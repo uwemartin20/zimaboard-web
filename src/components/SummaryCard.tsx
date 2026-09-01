@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { FaUserCheck, FaUserEdit, FaBullhorn, FaEnvelope } from "react-icons/fa";
 import clsx from "clsx";
-
-type Message = { id: number; title: string; status: { name: string; color: string }, priority: string; creator: { name: string; department: { name: string; color: string } } };
+import type { Message } from "../types";
 
 type SummaryCardsProps = { title: string; messages: Message[]; count: number; onClick: () => void;};
 

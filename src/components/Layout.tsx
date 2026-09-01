@@ -1,11 +1,11 @@
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import { logout } from "../api/auth";
+import { logout, getUser } from "../api/auth";
 import { Outlet, useLocation } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import echo from "../api/echo"; // your existing Echo setup
-// import { useUnread } from "../context/UnreadContext";
-import { useNotifications } from "../context/NotificationContext";
+import { notifyMessage, useNotifications } from "../context/NotificationContext";
+import type { Comment, UserSummary } from "../types";
 import { ToastContainer } from "react-toastify";
 
 export default function Layout() {
@@ -17,19 +17,10 @@ export default function Layout() {
     if (subscriptionRef.current) return;
     subscriptionRef.current = true;
     // Subscribe to current user private channel
-    const userString = localStorage.getItem("user"); // or get from your auth
-    if (!userString) return;
-
-    let user: any;
-    try {
-      user = JSON.parse(userString);
-    } catch {
-      return;
-    }
+    const user = getUser();
     if (!user) return;
 
-    subscriptionRef.current = true;
-    const appEnv = import.meta.env.VITE_APP_ENV
+    const appEnv = import.meta.env.VITE_APP_ENV;
 
     const userChannel = echo.private(`${appEnv}.user.${user.id}`);
     // 1️⃣ Notifications (source of truth)
@@ -40,10 +31,29 @@ export default function Layout() {
         data.message_id,
         data.message
       );
+      const comment: Comment = {
+        id: data.id,
+        message_id: data.message_id,
+        content: data.content ?? data.body ?? "",
+        created_at: data.created_at ?? new Date().toISOString(),
+        user: (data.user ?? { id: 0, name: "Unbekannt" }) as UserSummary,
+      };
+      notifyMessage(comment.message_id ?? data.message_id, comment);
     });
     userChannel.listen(".chat.created", (data: any) => {
         console.log("Received chat.created event:", data);
-        // addNotification(data.chat.message_id, `Neuer Kommentar von ${data.chat.user.name}: ${data.chat.content}`);
+        // Forward the new comment to any page currently rendering this message.
+        // Shape mirrors the POST /messages/{id}/comments response: a Comment.
+        const raw = data?.chat ?? data?.comment ?? data;
+        if (!raw || raw.message_id == null) return;
+        const comment: Comment = {
+          id: raw.id,
+          message_id: raw.message_id,
+          content: raw.content ?? raw.body ?? "",
+          created_at: raw.created_at ?? new Date().toISOString(),
+          user: (raw.user ?? { id: 0, name: "Unbekannt" }) as UserSummary,
+        };
+        notifyMessage(comment.message_id ?? raw.message_id, comment);
     });
 
     // Tickets/messages
@@ -58,7 +68,7 @@ export default function Layout() {
         echo.leave(`${appEnv}.user.${user.id}`);
         subscriptionRef.current = false;
     };
-  }, [echo, addNotification]);
+  }, [echo, addNotification, getUser]);
 
   const titleMap: Record<string, string> = {
     "/": "Dashboard",
